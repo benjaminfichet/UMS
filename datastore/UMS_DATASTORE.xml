@@ -1,9 +1,17 @@
 <Datastore>
-	<Update entity="Ch_GauvainF04A_Mdl_Pant" skinmod="Skinname" version="54122845" filename=""/>
+	<Update entity="Ch_GauvainF04A_Mdl_Pant" skinmod="Skin" version="54122845" filename=""/>
 	<Update entity="Ch_GauvainF04A_Mdl_Pant" skinmod="Skin" version="54127445" filename=""/>
-	<Update entity="Ch_GauvainF04A_Mdl_Pant" skinmod="Skinname" version="57847845" filename=""/>
+	<Update entity="Ch_GauvainF04A_Mdl_Pant" skinmod="Skin" version="57847845" filename=""/>
 	<Update entity="Ch_GauvainF04A_Mdl_Jambiere" skinmod="Skinname" version="54127845" filename=""/>
 	<Update entity="Ch_GauvainF04A_Mdl_Jambiere" skinmod="Skin" version="99999999999" filename=""/>
 	<Update entity="Ch_GauvainF04A_Mdl_Shoe" skinmod="Skin" version="54121245" filename=""/>
 	<Update entity="Ch_GauvainF04A_Mdl_Shoe" skinmod="Skin" version="1111" filename=""/>
+
+
+	<Update entity="Ch_GauvainF04A_Mdl_Shoe" skinmod="Skin" version="1111" filename=""/>
+	<Update entity="Ch_GauvainF04A_Mdl_Shoe" skinmod="Skin" version="5645111" filename=""/>
+	<Update entity="Ch_GauvainF04A_Mdl_Shoe" skinmod="Skin" version="5189611" filename=""/>
+	<Update entity="Ch_GauvainF04A_Mdl_Shoe" skinmod="Skin" version="111471" filename=""/>
+	<Update entity="Ch_GauvainF04A_Mdl_Shoe" skinmod="Skin" version="113211" filename=""/>
+
 </Datastore>
