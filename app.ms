@@ -13,6 +13,7 @@
 -- Source 3rd party modules
 (
 	local xml_lib_path = @"C:\symbdrives\BSSTools_Drive\SpiritTools\General_Tools\bss_presets\struct_xml.ms"
+	--local xml_lib_path = @"C:\Work\code\3ds\maxscript\UMS\XMLStruct.ms"
 	filein xml_lib_path
 )
 
@@ -116,15 +117,20 @@ struct UMSUpdate (
    ------------------------------------------------------------ */
 struct UMSDatastore (
 
-
+	_db_identifier = "UMS_DATASTORE.xml",
 	_update_tag_id = "Update",
 
-	xml_doc = undefined,
+	xml_doc       = undefined,
+	xml_datastore = undefined,
+
+
 	updates = undefined,
 
 	fn dbgPrint str mode:"info" = (format "[UmS-%] %\n" mode str),
 	fn dirExists d  = ((dotNetClass "System.IO.Directory").Exists d),
 	fn fileExists f = ((getfiles f).count != 0),
+	fn getDatastorePath = (UMS_DATASTORE + _db_identifier),
+	fn datastoreExists  = (fileExists (getDatastorePath())),
 
 
 	fn _qSort_Updates_byVersion a b = (
@@ -150,8 +156,8 @@ struct UMSDatastore (
 
 
 				-- Look for the xml file defining the updates
-				local fname = UMS_DATASTORE + "UMS_DATASTORE.xml"
-				ret.ret = fileExists fname
+				local fname = this.getDatastorePath()
+				ret.ret = datastoreExists()
 
 				if ret.ret then (
 					ret.reason = "Found datastore's db! ("+fname + ")"
@@ -171,6 +177,10 @@ struct UMSDatastore (
 					-- Lasts initializations
 					if ret.ret then (
 
+						-- Xml
+						this.xml_datastore = this.xml_doc.GetRootNode()
+
+						-- updates
 						this.updates = #()
 						local update_xml_nodes = this.xml_doc.GetNodesByTagName _update_tag_id
 						for xmln in update_xml_nodes do (
@@ -216,7 +226,7 @@ struct UMSDatastore (
 				ret = request.validate()
 				if ret.ret then (	
 
-					local nodeSkinver = (request.getSkinVersion()).data
+					local nodeSkinver = (request.getSkinVersion()).data as string
 					dbgPrint "Node request validated!"
 					dbgPrint ("Current skin version: " + nodeSkinver)
 
@@ -224,40 +234,37 @@ struct UMSDatastore (
 					-- Select updates matching the request
 					
 					-- At least the entity name must match!
-					local ret_updates_byname = for u in this.updates where  ((u.entity == request.node.name) and \
+					local ret_updates = for u in this.updates where  ((u.entity == request.node.name) and \
 																			((u.skinmod as name) == (request.skinmod as name)) and \
 																			((u.version as integer) > (nodeSkinver as integer))) collect u
 
-
 					-- Cache the UMSNodeRequest in every update in ._node_request
-					for i in ret_updates_byname do (i._node_request = request) 
+					for i in ret_updates do (i._node_request = request) 
 
 					-- Sort updates by versions from up to bottom
-					qsort ret_updates_byname _qSort_Updates_byVersion
+					qsort ret_updates _qSort_Updates_byVersion
 
 					ret.ret = true
-					ret.data = ret_updates_byname
+					ret.data = ret_updates
 				)
 			)
 		)
 		ret
 	),
 
-	fn upgrade  = (
-
+	-- Scan an recreate xml file
+	fn reload_database = (
+		-- delete old db
+		if (datastoreExists()) then (
+			deleteFile (getDatastorePath())
+			--createDataStore()
+		)
 	),
-
 
 	on create do (
 
 	)
 )
-
-
-
-
-
-
 
 
 
@@ -292,9 +299,7 @@ struct UpdateMySkins (
 	),
 
 
-
 	fn create_upgrade request = (
-		
 
 	),
 
@@ -303,7 +308,11 @@ struct UpdateMySkins (
 	)
 )
 
-todoUpdate = undefined
+
+
+
+
+
 
 
 ums = UpdateMySkins()
@@ -321,13 +330,19 @@ if wokeup.ret then (
 	print (rupdates.data)
 
 
-	todoUpdate = rupdates.data[1]
+	local todoUpdate = rupdates.data[1]
 	format "Will upgrade to :%\n" todoUpdate
 
-
+	ums.
 
 )
 0
+
+
+
+
+
+
 
 
 --new_update = ums.update()  -- Fetches new updates
