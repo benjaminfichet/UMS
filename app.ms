@@ -24,6 +24,7 @@
 
 	-- Include the configs
 	filein (thisdir + @"config.ms")            -- user config overwrites the default
+	filein (thisdir + @"models.ms")            -- load up the models
 )
 
 
@@ -36,78 +37,6 @@ struct ReturnCode (ret, data, reason)
 
 
 
-/* ------------------------------------------------------------
-	==================== UMS NODE REQUEST ====================
-   ------------------------------------------------------------ */
-struct UMSNodeRequest (
-	node = undefined,
-	skinmod = undefined,
-
-	_skin_version_key_id = "ums_skin_version",
-
-	fn getSkinVersion = (
-		local ret = ReturnCode ret:true
-		local skn_ver = false
-		local buff = getUserPropBuffer (this.node)
-		local lns  = FilterString buff "\n" 
-		for l in lns do (
-			local toks = FilterString l "="
-			if (trimLeft(trimRight(toks[1]))) == _skin_version_key_id then (skn_ver = trimLeft(trimRight(toks[2])))
-		)
-		if skn_ver != false then (ret.data = skn_ver)
-		else(ret.data = 0)
-
-		ret
-	),
-
-	fn validate = (
-		local vnode     = (isValidNode node)
-		local vskin     = false
-		if vnode then (
-			if skinmod == undefined then (this.skinmod = #Skin)
-			local vskin     =  classof (node.modifiers[skinmod]) == Skin
-		)
-		ReturnCode ret:(vnode and vskin)
-	),
-	on create do ()
-)
-
-
-
-/* ------------------------------------------------------------
-	==================== UMS UPDATE ====================
-   ------------------------------------------------------------ */
-struct UMSUpdate (
-	entity   = undefined,
-	version  = undefined,
-	skinmod  = undefined,
-	filename = undefined,
-
-	_entity_tag_id   = "entity",
-	_skinmod_tag_id  = "skinmod",
-	_version_tag_id  = "version",
-	_filename_tag_id = "filename",
-
-
-	-- Used internally to bring back the original UMSNodeRequest to the upgrade function!
-	_node_request    = undefined,
-
-
-	fn _initFromXmlBloc xml = (
-		this.entity   = xml.GetAttribute _entity_tag_id
-		this.skinmod  = xml.GetAttribute _skinmod_tag_id
-		this.version  = xml.GetAttribute _version_tag_id 
-		this.filename = xml.GetAttribute _filename_tag_id
-
-		(this.validate())
-	),
-
-	fn validate = (
-		local ret = ReturnCode ret:true
-		ret
-	),
-	on create do ()
-)
 
 
 
@@ -131,6 +60,10 @@ struct UMSDatastore (
 	fn fileExists f = ((getfiles f).count != 0),
 	fn getDatastorePath = (UMS_DATASTORE + _db_identifier),
 	fn datastoreExists  = (fileExists (getDatastorePath())),
+	fn isOutated = (
+
+
+	),
 
 
 	fn _qSort_Updates_byVersion a b = (
@@ -143,6 +76,7 @@ struct UMSDatastore (
 		
 		ret
 	),
+
 
 	fn wake_up = (
 		--(dbgPrint "UMSDatastore wakes up.." mode:"datastore")
@@ -159,7 +93,13 @@ struct UMSDatastore (
 				local fname = this.getDatastorePath()
 				ret.ret = datastoreExists()
 
-				if ret.ret then (
+
+				-- Create datastore file if it aint exist
+				if not ret.ret then (this.createDatastoreFile())
+
+
+
+				if ret.ret or (this.createDatastoreFile()) then (
 					ret.reason = "Found datastore's db! ("+fname + ")"
 
 					try(
@@ -254,11 +194,17 @@ struct UMSDatastore (
 
 	-- Scan an recreate xml file
 	fn reload_database = (
+
 		-- delete old db
 		if (datastoreExists()) then (
 			deleteFile (getDatastorePath())
-			--createDataStore()
+
+			-- Recreate db
 		)
+
+
+
+
 	),
 
 	on create do (
