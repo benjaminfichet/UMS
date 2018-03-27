@@ -25,12 +25,14 @@ global UMS_HOME_DEV = false
 
 	-- Include the configs
 	filein (thisdir + @"config.ms")            -- user config overwrites the default
+	filein (thisdir + @"libraries/models.ms")            -- load up the models
 )
 
 
 struct ReturnCode (ret, data, reason)
 
 
+<<<<<<< HEAD
 /* ------------------------------------------------------------
 	==================== UMS NODE REQUEST ====================
    ------------------------------------------------------------ */
@@ -103,6 +105,14 @@ struct UMSUpdate (
 	),
 	on create do ()
 )
+=======
+
+
+
+
+
+
+>>>>>>> e0d8f45861318752aa47b91b0e88b03fefa37bcc
 
 
 
@@ -112,8 +122,10 @@ struct UMSUpdate (
    ------------------------------------------------------------ */
 struct UMSDatastore (
 
-	_db_identifier = "UMS_DATASTORE.xml",
-	_update_tag_id = "Update",
+	_db_identifier    = "UMS_DATASTORE.xml",
+	_datastore_tag_id = "Datastore",
+	_update_tag_id    = "Update",
+	_updates_ext      = ".zip",
 
 	xml_doc       = undefined,
 	xml_datastore = undefined,
@@ -128,6 +140,24 @@ struct UMSDatastore (
 	fn datastoreExists  = (fileExists (getDatastorePath())),
 
 
+
+	fn createDatastoreFile = (
+		local ret = ReturnCode ret:(not (this.datastoreExists()))
+		if ret.ret then (
+			this.xml_doc = xmldocument()
+			this.xml_doc.file = (getDatastorePath())
+			this.xml_doc.loaded = true
+			this.xml_datastore = this.xml_doc.getnewnode this._datastore_tag_id
+			this.xml_doc.appendnode this.xml_datastore
+			this.xml_doc.savexml()
+			--this.xml_doc.dispose()
+
+			ret.ret = true
+		)
+		ret
+	),
+
+
 	fn _qSort_Updates_byVersion a b = (
 		local aver =  (a.version as integer)
 		local bver =  (b.version as integer)
@@ -138,6 +168,7 @@ struct UMSDatastore (
 		
 		ret
 	),
+
 
 	fn wake_up = (
 		--(dbgPrint "UMSDatastore wakes up.." mode:"datastore")
@@ -154,7 +185,13 @@ struct UMSDatastore (
 				local fname = this.getDatastorePath()
 				ret.ret = datastoreExists()
 
-				if ret.ret then (
+
+				-- Create datastore file if it aint exist
+				if not ret.ret then (this.createDatastoreFile())
+
+
+
+				if ret.ret or (this.createDatastoreFile()) then (
 					ret.reason = "Found datastore's db! ("+fname + ")"
 
 					try(
@@ -172,27 +209,32 @@ struct UMSDatastore (
 					-- Lasts initializations
 					if ret.ret then (
 
+						-- updates
+						this.updates = #()
+
 						-- Xml
 						this.xml_datastore = this.xml_doc.GetRootNode()
 
-						-- updates
-						this.updates = #()
-						local update_xml_nodes = this.xml_doc.GetNodesByTagName _update_tag_id
-						for xmln in update_xml_nodes do (
+						-- Root node must be of type: _datastore_tag_id
+						ret.ret = _datastore_tag_id == this.xml_datastore.Tag
+						if ret.ret then (
+							local update_xml_nodes = this.xml_doc.GetNodesByTagName _update_tag_id
+							for xmln in update_xml_nodes do (
 
-							local upd = UMSUpdate()
-							ret = upd._initFromXmlBloc xmln
+								local upd = UMSUpdate()
+								ret = upd._initFromXmlBloc xmln
 
-							if ret.ret then (
-								append this.updates upd
+								if ret.ret then (
+									append this.updates upd
+								)
 							)
-						)
 
-						-- Sort updates by versions from up to bottom
-						qsort this.updates _qSort_Updates_byVersion
+							-- Sort updates by versions from up to bottom
+							qsort this.updates _qSort_Updates_byVersion
 
 
-						(dbgPrint ("Available updates: " + (update_xml_nodes.count as string)) mode:"datastore")
+							(dbgPrint ("Available updates: " + (update_xml_nodes.count as string)) mode:"datastore")
+						)else(reason = "Invalid root node type!")
 					)
 
 				)else(ret.reason = "Datastore's db not found! ("+fname+")")
@@ -248,12 +290,33 @@ struct UMSDatastore (
 	),
 
 	-- Scan an recreate xml file
-	fn reload_database = (
+	fn reload_datastore = (
+		local ret = ReturnCode ret:false
+
+
 		-- delete old db
 		if (datastoreExists()) then (
 			deleteFile (getDatastorePath())
-			--createDataStore()
+
+			-- Recreate datastore
+
+			-- get available updates
+			local available_updates = #()
+
+			-- Search files!
+			local srch_pattern = (UMS_DATASTORE + "*" + this._updates_ext)
+			local pubFiles =  getFiles srch_pattern
+			local pubs = #()
+			for f in pubFiles do (
+				local filename = getFilenameFile f -- "C:\Work\code\3ds\maxscript\ASU\tmp\GauvainF04A_Mdl_Hood_Skin_75054107.ini"
+				local fsplit = filterString filename "_"
+				append pubs (ASUPublication filename:filename dir:this.config.dir version:fsplit[fsplit.count])
+			)
+
+
+
 		)
+		ret
 	),
 
 	on create do (
@@ -262,6 +325,9 @@ struct UMSDatastore (
 )
 
 
+ds = UMSDatastore()
+ds.wake_up()
+ds.reload_datastore()
 
 /* ------------------------------------------------------------
 	==================== UMS CORE MODULE ====================
@@ -328,7 +394,7 @@ if wokeup.ret then (
 	local todoUpdate = rupdates.data[1]
 	format "Will upgrade to :%\n" todoUpdate
 
-	ums.
+	--ums.
 
 )
 0
