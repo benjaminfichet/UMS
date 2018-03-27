@@ -8,12 +8,13 @@
 -- UMS.upgrade node:myNode skin:myNode version:optional
 
 
-
+-- switch 3rd libs home/spirit
+global UMS_HOME_DEV = false
 
 -- Source 3rd party modules
 (
-	local xml_lib_path = @"C:\symbdrives\BSSTools_Drive\SpiritTools\General_Tools\bss_presets\struct_xml.ms"
-	--local xml_lib_path = @"C:\Work\code\3ds\maxscript\UMS\XMLStruct.ms"
+	local xml_lib_path = @"U:\SpiritTools\main\General_Tools\bss_presets\struct_xml.ms"
+	if UMS_HOME_DEV == true then (xml_lib_path = @"C:\symbdrives\BSSTools_Drive\SpiritTools\General_Tools\bss_presets\struct_xml.ms")
 	filein xml_lib_path
 )
 
@@ -28,12 +29,6 @@
 
 
 struct ReturnCode (ret, data, reason)
-
-
-
-
-
-
 
 
 /* ------------------------------------------------------------
@@ -314,7 +309,7 @@ struct UpdateMySkins (
 
 
 
-
+/*
 ums = UpdateMySkins()
 wokeup = ums.wake_up()
 if wokeup.ret then (
@@ -338,7 +333,10 @@ if wokeup.ret then (
 )
 0
 
+*/
 
+
+0
 
 
 
