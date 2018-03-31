@@ -65,16 +65,29 @@ struct UMSDatastore (
 
 
 
-	fn createDatastoreFile = (
+	fn createDatastoreFile continueWakeUp:false = (
 		local ret = ReturnCode ret:(not (this.datastoreExists()))
 		if ret.ret then (
 			this.xml_doc = xmldocument()
 			this.xml_doc.file = (getDatastorePath())
 			this.xml_doc.loaded = true
+
+
+			-- Root node
 			this.xml_datastore = this.xml_doc.getnewnode this._datastore_tag_id
 			this.xml_doc.appendnode this.xml_datastore
 			this.xml_doc.savexml()
-			--this.xml_doc.dispose()
+
+			-- New empty node
+			local newNode = this.xml_doc.getNewNode _update_tag_id					--Get a new Node
+			xml_datastore.AppendNode newNode									    --Append a new Node
+			newNode.AddAttribute "entity"   "init"
+			newNode.AddAttribute "skinmod"  "init"
+			newNode.AddAttribute "version"  "0"
+			newNode.AddAttribute "filename" "init"
+			
+			-- XX
+			this.xml_doc.savexml()
 
 			ret.ret = true
 		)
@@ -111,11 +124,11 @@ struct UMSDatastore (
 
 
 				-- Create datastore file if it aint exist
-				if not ret.ret then (this.createDatastoreFile())
+				if not ret.ret then (ret = this.createDatastoreFile())
 
 
 
-				if ret.ret or (this.createDatastoreFile()) then (
+				if ret.ret then (
 					ret.reason = "Found datastore's db! ("+fname + ")"
 
 					try(
@@ -139,7 +152,7 @@ struct UMSDatastore (
 						-- Xml
 						this.xml_datastore = this.xml_doc.GetRootNode()
 
-						-- Root node must be of type: _datastore_tag_id
+						-- Root node must be of type: _datastore_tag_id -- update
 						ret.ret = _datastore_tag_id == this.xml_datastore.Tag
 						if ret.ret then (
 							local update_xml_nodes = this.xml_doc.GetNodesByTagName _update_tag_id
@@ -165,6 +178,7 @@ struct UMSDatastore (
 			)else(ret.reason = "Invalid datastore directory! ("+UMS_DATASTORE + ")")
 		)
 		if ret.ret then (dbgPrint "UMSDatastore woke up!" mode:"datastore") else (dbgPrint "Unable to wake up datastore!" mode:"datastore")
+		
 		ret
 	),
 
@@ -194,10 +208,14 @@ struct UMSDatastore (
 
 					-- Select updates matching the request
 					
+
+
 					-- At least the entity name must match!
 					local ret_updates = for u in this.updates where  ((u.entity == request.node.name) and \
 																			((u.skinmod as name) == (request.skinmod as name)) and \
 																			((u.version as integer) > (nodeSkinver as integer))) collect u
+
+					
 
 					-- Cache the UMSNodeRequest in every update in ._node_request
 					for i in ret_updates do (i._node_request = request) 
@@ -205,8 +223,12 @@ struct UMSDatastore (
 					-- Sort updates by versions from up to bottom
 					qsort ret_updates _qSort_Updates_byVersion
 
+					--break()
+
 					ret.ret = true
 					ret.data = ret_updates
+
+
 				)
 			)
 		)
@@ -214,7 +236,7 @@ struct UMSDatastore (
 	),
 
 	-- Scan an recreate xml file
-	fn reload_datastore = (
+	fn reload_datastore force:false = (
 		local ret = ReturnCode ret:false
 
 
@@ -223,6 +245,7 @@ struct UMSDatastore (
 			deleteFile (getDatastorePath())
 
 			-- Recreate datastore
+			this.createDatastoreFile()
 
 			-- get available updates
 			local available_updates = #()
@@ -234,11 +257,25 @@ struct UMSDatastore (
 			for f in pubFiles do (
 				local filename = getFilenameFile f -- "C:\Work\code\3ds\maxscript\ASU\tmp\GauvainF04A_Mdl_Hood_Skin_75054107.ini"
 				local fsplit = filterString filename "_"
-				append pubs (ASUPublication filename:filename dir:this.config.dir version:fsplit[fsplit.count])
+
+
+				local bEntityName = ""
+				local endpos = fsplit.count-2
+				for i=1 to endpos do (
+					bEntityName+=fsplit[i]
+					if i<endpos then (bEntityName += "_")
+				)
+				-- New empty node
+				local newNode = this.xml_doc.getNewNode _update_tag_id					    --Get a new Node from xmldoc
+				this.xml_datastore.AppendNode newNode									    --Append a new Node to xml_datastore
+
+				newNode.AddAttribute "entity"   bEntityName
+				newNode.AddAttribute "skinmod"  (fsplit[fsplit.count-1] as string)
+				newNode.AddAttribute "version"  (fsplit[fsplit.count] as string)
+				newNode.AddAttribute "filename" (filename + (getFilenameType (f)))
 			)
 
-
-
+			this.xml_doc.savexml()
 		)
 		ret
 	),
@@ -249,9 +286,9 @@ struct UMSDatastore (
 )
 
 
-ds = UMSDatastore()
-ds.wake_up()
-ds.reload_datastore()
+---ds = UMSDatastore()
+---ds.wake_up()
+---ds.reload_datastore()
 
 /* ------------------------------------------------------------
 	==================== UMS CORE MODULE ====================
@@ -267,11 +304,6 @@ struct UpdateMySkins (
 		if ret.ret then (
 			dbgPrint ("Datastore's alive!")
 
-
-
-
-
-
 			dbgPrint ("UMS is alive!")
 		)
 		ret		
@@ -285,8 +317,10 @@ struct UpdateMySkins (
 
 
 	fn create_upgrade request = (
-
 	),
+
+
+	fn reload_datastore force:false = (this.datastore.reload_datastore force:force),
 
 	on create do (
 		this.datastore = UMSDatastore()
@@ -306,8 +340,8 @@ if wokeup.ret then (
 	--local upds = ums.list_updates()
 	--print upds.data
 
-	print "Selecting an update.."
-	local mnd = $Ch_GauvainF04A_Mdl_Shoe
+	--print "Selecting an update.."
+	local mnd = $Ch_GauvainF04A_Mdl_Hood
 	local req = UMSNodeRequest node:mnd skinmod:#Skin
 	--print req
 
@@ -318,7 +352,8 @@ if wokeup.ret then (
 	local todoUpdate = rupdates.data[1]
 	format "Will upgrade to :%\n" todoUpdate
 
-	--ums.
+	-- Reload datastore
+	ums.reload_datastore()
 
 )
 0

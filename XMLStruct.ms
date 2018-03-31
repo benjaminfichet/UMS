@@ -149,8 +149,8 @@ struct XMLDocument (
 )
 
 
-
-testNewFile = False
+/*
+testNewFile = True
 testLoadFile = False
 
 if testNewFile == True do(
@@ -204,3 +204,4 @@ if testLoadFile == True do(
 	xDoc.SaveXML()
 	
 )--End If
+*/

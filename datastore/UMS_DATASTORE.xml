@@ -1,1 +1,6 @@
-<Datastore />
+<Datastore>
+  <Update entity="init" skinmod="init" version="0" filename="init" />
+  <Update entity="GauvainF04A_Mdl_Hood" skinmod="Skin" version="76431845" filename="GauvainF04A_Mdl_Hood_Skin_76431845.zip" />
+  <Update entity="GauvainF04A_Mdl_Hood" skinmod="Skin" version="78073968" filename="GauvainF04A_Mdl_Hood_Skin_78073968.zip" />
+  <Update entity="GauvainF04A_Mdl_Hood" skinmod="Skin" version="81419945" filename="GauvainF04A_Mdl_Hood_Skin_81419945.zip" />
+</Datastore>

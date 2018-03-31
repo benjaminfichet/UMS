@@ -6,6 +6,7 @@ struct UMSNodeRequest (
 	skinmod = undefined,
 
 	_skin_version_key_id = "ums_skin_version",
+	_skin_default_name   = #Skin,
 
 	fn getSkinVersion = (
 		local ret = ReturnCode ret:true
@@ -26,7 +27,7 @@ struct UMSNodeRequest (
 		local vnode     = (isValidNode node)
 		local vskin     = false
 		if vnode then (
-			if skinmod == undefined then (this.skinmod = #Skin)
+			if skinmod == undefined then (this.skinmod = this._skin_default_name)
 			local vskin     =  classof (node.modifiers[skinmod]) == Skin
 		)
 		ReturnCode ret:(vnode and vskin)
