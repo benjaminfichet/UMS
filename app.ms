@@ -1,12 +1,24 @@
 --app.ms
 
-
 -- Liste les updates disponibles
 -- updates =  UMS.listUpdates node:myNode skin:myNode[..]#Skin
 
 -- Selectionne une ou la derniere version pour un upgrade
 -- UMS.upgrade node:myNode skin:myNode version:optional
 
+/*
+========================================================
+MMMMMMMMMMMM""MMMMM""M"""""`'"""`YMP""""""`MMMMMMMMMMMMM
+MMMMMMMMMMMM  MMMMM  M  mm.  mm.  M  mmmmm..MMMMMMMMMMMM
+MMMMMMMMMMMM  MMMMM  M  MMM  MMM  M.      `YMMMMMMMMMMMM
+MMMMMMMMMMMM  MMMMM  M  MMM  MMM  MMMMMMM.  MMMMMMMMMMMM
+MMMMMMMMMMMM  `MMM'  M  MMM  MMM  M. .MMM'  MMMMMMMMMMMM
+MMMMMMMMMMMMb       dM  MMM  MMM  Mb.     .dMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+========================================================
+                      UpdateMySkin!
+========================================================
+*/
 
 -- dev switch 3rdlibs home/bss paths
 global UMS_HOME_DEV = true
@@ -14,9 +26,15 @@ global UMS_HOME_DEV = true
 
 -- Source 3rd party modules
 (
-	local xml_lib_path = @"U:\SpiritTools\main\General_Tools\bss_presets\struct_xml.ms"
-	if UMS_HOME_DEV == true then (xml_lib_path = @"C:\symbdrives\BSSTools_Drive\SpiritTools\General_Tools\bss_presets\struct_xml.ms")
-	filein xml_lib_path
+	-- Paths
+	local  home_xml_struct_path = @"C:\symbdrives\BSSTools_Drive\SpiritTools\General_Tools\bss_presets\struct_xml.ms"
+	filein home_xml_struct_path
+
+
+	-- ReturnCode
+	local thisdir = (getFilenamePath(getThisScriptFilename()))
+	filein (thisdir + @"../ReturnCode/ReturnCode.ms")  
+
 )
 
 
@@ -24,7 +42,6 @@ global UMS_HOME_DEV = true
 (
 	local thisdir = (getFilenamePath(getThisScriptFilename()))
 
-	-- Include the configs
 	filein (thisdir + @"config.ms")                      -- user config overwrites the default
 	filein (thisdir + @"libraries/models.ms")            -- load up the models
 )
@@ -42,6 +59,7 @@ struct UMSDatastore (
 	_datastore_tag_id = "Datastore",
 	_update_tag_id    = "Update",
 	_updates_ext      = ".zip",
+	_datastore_timeout= (3600*24), -- 3600sec/1h * 24h -- a day
 
 	xml_doc       = undefined,
 	xml_datastore = undefined,
@@ -49,12 +67,19 @@ struct UMSDatastore (
 
 	updates = undefined,
 
-	fn dbgPrint str mode:"info" = (format "[UmS-%] %\n" mode str),
+	fn dbgPrint str mode:"dts" = (format "[UMS-dts]  %" str),
 	fn dirExists d  = ((dotNetClass "System.IO.Directory").Exists d),
 	fn fileExists f = ((getfiles f).count != 0),
 	fn getDatastorePath = (UMS_DATASTORE + _db_identifier),
 	fn datastoreExists  = (fileExists (getDatastorePath())),
 
+
+
+	fn need_update = (
+		local ret = ReturnCode ret:(isKindof this.xml_doc XMLDocument)
+
+		ret
+	),
 
 
 	fn createDatastoreFile continueWakeUp:false = (
@@ -68,6 +93,8 @@ struct UMSDatastore (
 			-- Root node
 			this.xml_datastore = this.xml_doc.getnewnode this._datastore_tag_id
 			this.xml_doc.appendnode this.xml_datastore
+
+			this.xml_datastore.AddAttribute "datastore_time" (timestamp() as string)
 			this.xml_doc.savexml()
 
 			-- New empty node
@@ -81,6 +108,7 @@ struct UMSDatastore (
 			-- XX
 			this.xml_doc.savexml()
 
+			-- ret
 			ret.ret = true
 		)
 		ret
@@ -90,7 +118,9 @@ struct UMSDatastore (
 	fn _qSort_Updates_byVersion a b = (
 		local aver =  (a.version as integer)
 		local bver =  (b.version as integer)
-		
+		if aver == undefined or bver == undefined then (throw "Unable to execute qsort's function, an item is undefined!")
+
+
 		local ret  = 0
 		if (aver < bver) then (ret = -1)
 		if (bver > aver) then (ret = 1)
@@ -101,6 +131,7 @@ struct UMSDatastore (
 
 	fn wake_up = (
 		--(dbgPrint "UMSDatastore wakes up.." mode:"datastore")
+		this.dbgPrint "UMSDatastore wakes up..\n" mode:"dbg"
 		local ret = ReturnCode ret:((classof UMS_DATASTORE) == String) reason:"UMS_DATASTORE glob.var must be set as string!"
 		if ret.ret then (
 
@@ -122,6 +153,7 @@ struct UMSDatastore (
 
 				if ret.ret then (
 					ret.reason = "Found datastore's db! ("+fname + ")"
+					this.dbgPrint ("DTS file: "+fname+"\n") mode:"dbg" 
 
 					try(
 						-- Initializing the xml_doc
@@ -161,15 +193,17 @@ struct UMSDatastore (
 							-- Sort updates by versions from up to bottom
 							qsort this.updates _qSort_Updates_byVersion
 
+							this.dbgPrint ("Registered updates: "+(this.updates.count as string)+"\n") mode:"dbg" 
 
-							(dbgPrint ("Available updates: " + (update_xml_nodes.count as string)) mode:"datastore")
+							--this.dbgPrint "UMSDatastore woke up!\n" mode:"dbg"
+							--(dbgPrint ("Available updates: " + (update_xml_nodes.count as string)) mode:"datastore")
 						)else(reason = "Invalid root node type!")
 					)
 
 				)else(ret.reason = "Datastore's db not found! ("+fname+")")
 			)else(ret.reason = "Invalid datastore directory! ("+UMS_DATASTORE + ")")
 		)
-		if ret.ret then (dbgPrint "UMSDatastore woke up!" mode:"datastore") else (dbgPrint "Unable to wake up datastore!" mode:"datastore")
+		if ret.ret then (this.dbgPrint "UMSDatastore woke up!\n" mode:"datastore") else (dbgPrint "Unable to wake up datastore!\n" mode:"datastore")
 		
 		ret
 	),
@@ -194,19 +228,14 @@ struct UMSDatastore (
 				if ret.ret then (	
 
 					local nodeSkinver = (request.getSkinVersion()).data as string
-					dbgPrint "Node request validated!"
-					dbgPrint ("Current skin version: " + nodeSkinver)
-
+					dbgPrint "Node request validated!\n"
+					dbgPrint ("Current skin version: " + nodeSkinver + "\n")
 
 					-- Select updates matching the request
-					
-
-
 					-- At least the entity name must match!
-					local ret_updates = for u in this.updates where  ((u.entity == request.node.name) and \
+					local ret_updates = for u in this.updates where         ((u.entity == request.node.name) and \
 																			((u.skinmod as name) == (request.skinmod as name)) and \
 																			((u.version as integer) > (nodeSkinver as integer))) collect u
-
 					
 
 					-- Cache the UMSNodeRequest in every update in ._node_request
@@ -215,12 +244,8 @@ struct UMSDatastore (
 					-- Sort updates by versions from up to bottom
 					qsort ret_updates _qSort_Updates_byVersion
 
-					--break()
-
 					ret.ret = true
 					ret.data = ret_updates
-
-
 				)
 			)
 		)
@@ -289,30 +314,44 @@ struct UpdateMySkins (
 
 	datastore = undefined,
 
-	fn dbgPrint str mode:"info" = (format "[UmS-%] %\n" mode str),
+	fn dbgPrint str mode:"info" = (format "[UMS-%] %" mode str),
 	fn wake_up = (
-		dbgPrint ("Waking up UMS..")
+		this.dbgPrint "UMS wakes up..\n" mode:"core"
 		local ret = this.datastore.wake_up()
 		if ret.ret then (
-			dbgPrint ("Datastore's alive!")
-
-			dbgPrint ("UMS is alive!")
+			this.dbgPrint "UMS woke up!\n\n" mode:"core"
 		)
 		ret		
 	),
+
+
+
+	fn reload_datastore force:false = (
+		local ret = this.datastore.reload_datastore force:force
+		if ret.ret then (ret = this.datastore.wake_up())
+		ret
+	),
+
 
 	fn list_updates request:undefined = (this.datastore.list_updates request:request),
 
 	-- Takes an UMSUpdate
 	fn upgrade up_request = (
+		local ret = ReturnCode ret:(isKindOf up_request UMSUpdate) reason:"upgrade function takes an UMSUpdate as argument!"
+		if ret.ret then (
+			ret.reason = "" --- reset reason if we are here
+			ret = UMSUpdate.validate()
+			if ret.ret then (
+				dbgPrint "Updatete request validated!\n"
+
+			)
+		)
+		ret
 	),
 
 
 	fn create_upgrade request = (
 	),
-
-
-	fn reload_datastore force:false = (this.datastore.reload_datastore force:force),
 
 	on create do (
 		this.datastore = UMSDatastore()
@@ -325,44 +364,52 @@ struct UpdateMySkins (
 
 
 
-/*
-ums = UpdateMySkins()
-wokeup = ums.wake_up()
-if wokeup.ret then (
+
+--ums = UpdateMySkins()
+--wokeup = ums.wake_up()
+
+-- Reload datastore
+--ums.reload_datastore()
+--todoUpdate = undefined
+
+/*if wokeup.ret then (
 	--local upds = ums.list_updates()
 	--print upds.data
 
 	--print "Selecting an update.."
-	local mnd = $Ch_GauvainF04A_Mdl_Hood
+	local mnd = $ch_lewis_b00a_mdl_body
 	local req = UMSNodeRequest node:mnd skinmod:#Skin
 	--print req
 
 	local rupdates = ums.list_updates request:req
 	print (rupdates.data)
 
+	todoUpdate = rupdates.data[1]
+	if todoUpdate != undefined then (
+		--format "Will upgrade to :%\n" todoUpdate
+		--format "Using: %\n" todoUpdate._node_request
+--
+--
+		--print (ums.upgrade todoUpdate)
+	)
+	
+)*/
 
-	local todoUpdate = rupdates.data[1]
-	format "Will upgrade to :%\n" todoUpdate
 
-	-- Reload datastore
-	ums.reload_datastore()
 
+
+-- init ums
+(
+	--ums = UpdateMySkins()
+	--wokeup = ums.wake_up()
 )
-0
-
-*/
-
-
-0
 
 
 
-
-
-
---new_update = ums.update()  -- Fetches new updates
---if new_update then (
---	ums.upgrade() -- version:4125412336 -- upgrade to latest or given update
---)
-
---z
+-- UMS GUI ?
+try(destroyDialog UpdateMySkinsRollout)catch()
+rollout UpdateMySkinsRollout "UpdateMySkinsRollout" (
+	
+	
+)
+CreateDialog UpdateMySkinsRollout

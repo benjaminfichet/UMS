@@ -62,6 +62,23 @@ struct UMSUpdate (
 		this.version  = xml.GetAttribute _version_tag_id 
 		this.filename = xml.GetAttribute _filename_tag_id
 
+		local ret = ReturnCode ret:false
+
+
+		-- Validate entity
+		local entityNode = (getNodeByName this.entity)
+		ret.ret = isValidNode entityNode
+		if not ret.ret then (ret.reason = "UMSUpdate - Invalid entity!" + this.entity)
+		else (
+
+			-- validate skinmodifier
+			local skn = entityNode.modifiers[this.skinmod]
+			ret.ret = classof(skn) == Skin
+			if not ret.ret then (ret.reason = "UMSUpdate - Entity does not hold a valid skin! (" + this.skinmod + ")")
+			else (
+				-- ...
+			)
+		)
 		(this.validate())
 	),
 
