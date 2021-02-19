@@ -1,11 +1,11 @@
 # UMS
 UpdateMySkin! aims to be a complete skin versioning, updating, .., library. VERY WIP.
-
-The idea is to allow skins data to be updated in individual scenes from a central directory. 
+The idea is to allow skins data to be updated in individual scenes from a central directory cleanly. 
 
 If skins data are the only parts updated on a character rig, why not only update this part?
-Eg: Riggers publishes skin updates in a central location. 
-Animators's UMS fetch and apply the update(s) in the current scene.
+
+*Eg: Riggers publish skin updates in a central location. 
+Animators's UMS fetch and apply the update(s) in the current scene.*
 
 
 ```maxscript
